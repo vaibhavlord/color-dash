@@ -1,0 +1,243 @@
+{
+  "entities": {
+    "Room": {
+      "title": "Room",
+      "description": "An online multiplayer game room for Color Dash.",
+      "type": "object",
+      "properties": {
+        "roomCode": {
+          "type": "string",
+          "description": "6-character alphanumeric room code matching document ID.",
+          "minLength": 6,
+          "maxLength": 6,
+          "pattern": "^[A-Z0-9]{6}$"
+        },
+        "hostUid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the room host.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "hostName": {
+          "type": "string",
+          "description": "Display name of the room host.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "status": {
+          "type": "string",
+          "description": "Lifecycle status of the room.",
+          "enum": ["waiting", "playing", "finished"],
+          "minLength": 7,
+          "maxLength": 8
+        },
+        "round": {
+          "type": "number",
+          "description": "Current round number (1 to 30)."
+        },
+        "totalRounds": {
+          "type": "number",
+          "description": "Total regular rounds in a match (1 to 30)."
+        },
+        "suddenDeath": {
+          "type": "boolean",
+          "description": "Whether the match is currently in sudden death."
+        },
+        "suddenDeathRound": {
+          "type": "number",
+          "description": "Current sudden death round counter."
+        },
+        "phase": {
+          "type": "string",
+          "description": "Current round phase.",
+          "enum": ["countdown", "calling", "scoring"],
+          "minLength": 7,
+          "maxLength": 9
+        },
+        "countdownLabel": {
+          "type": "string",
+          "description": "Current countdown banner label.",
+          "enum": ["READY…", "3", "2", "1", "GO!"],
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "targetColor": {
+          "type": "string",
+          "description": "Called target plate color or none.",
+          "enum": ["none", "red", "blue", "green", "yellow"],
+          "minLength": 3,
+          "maxLength": 6
+        },
+        "lastWinnerSlot": {
+          "type": "number",
+          "description": "Player slot (1-4) that won the most recent round, or 0 if none."
+        },
+        "winnerSlot": {
+          "type": "number",
+          "description": "Player slot (1-4) that won the match, or 0 if not finished."
+        },
+        "playerCount": {
+          "type": "number",
+          "description": "Number of players currently in the room (1 to 4)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the room was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the room was last updated."
+        }
+      },
+      "required": [
+        "roomCode",
+        "hostUid",
+        "hostName",
+        "status",
+        "round",
+        "totalRounds",
+        "suddenDeath",
+        "suddenDeathRound",
+        "phase",
+        "countdownLabel",
+        "targetColor",
+        "lastWinnerSlot",
+        "winnerSlot",
+        "playerCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RoomPlayer": {
+      "title": "RoomPlayer",
+      "description": "A player participant inside an online multiplayer Color Dash room.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the player.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomId": {
+          "type": "string",
+          "description": "6-character room code of the parent room.",
+          "minLength": 6,
+          "maxLength": 6,
+          "pattern": "^[A-Z0-9]{6}$"
+        },
+        "slot": {
+          "type": "number",
+          "description": "Assigned player slot (1 to 4)."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Sanitized display name of the player.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "x": {
+          "type": "number",
+          "description": "Horizontal arena position (0 to 960)."
+        },
+        "y": {
+          "type": "number",
+          "description": "Vertical arena position (0 to 640)."
+        },
+        "vx": {
+          "type": "number",
+          "description": "Horizontal velocity."
+        },
+        "vy": {
+          "type": "number",
+          "description": "Vertical velocity."
+        },
+        "facingX": {
+          "type": "number",
+          "description": "Normalized horizontal facing direction."
+        },
+        "facingY": {
+          "type": "number",
+          "description": "Normalized vertical facing direction."
+        },
+        "score": {
+          "type": "number",
+          "description": "Total match points earned."
+        },
+        "streak": {
+          "type": "number",
+          "description": "Current consecutive round win streak."
+        },
+        "bestStreak": {
+          "type": "number",
+          "description": "Highest streak achieved in the match."
+        },
+        "falseStarted": {
+          "type": "boolean",
+          "description": "Whether the player committed a false start in the current round."
+        },
+        "falseStartCount": {
+          "type": "number",
+          "description": "Total false starts committed in the match."
+        },
+        "isContender": {
+          "type": "boolean",
+          "description": "Whether the player is eligible in the current round/sudden death."
+        },
+        "claimedRound": {
+          "type": "number",
+          "description": "Round number in which this player reached the target plate first (0 if none)."
+        },
+        "joinedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the player joined the room."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the player state was last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "roomId",
+        "slot",
+        "displayName",
+        "x",
+        "y",
+        "vx",
+        "vy",
+        "facingX",
+        "facingY",
+        "score",
+        "streak",
+        "bestStreak",
+        "falseStarted",
+        "falseStartCount",
+        "isContender",
+        "claimedRound",
+        "joinedAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/rooms/{roomId}": {
+      "schema": {
+        "$ref": "#/entities/Room"
+      },
+      "description": "Stores online multiplayer game rooms indexed by 6-character roomCode."
+    },
+    "/rooms/{roomId}/players/{playerUid}": {
+      "schema": {
+        "$ref": "#/entities/RoomPlayer"
+      },
+      "description": "Subcollection storing real-time player state and scores for a room."
+    }
+  }
+}

@@ -1,0 +1,254 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 6 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidRoomId(roomId) {
+      return roomId is string && roomId.size() == 6 && roomId.matches('^[A-Z0-9]{6}$');
+    }
+
+    // Validation Blueprint: Room
+    function isValidRoom(data) {
+      return data.keys().hasAll([
+        'roomCode',
+        'hostUid',
+        'hostName',
+        'status',
+        'round',
+        'totalRounds',
+        'suddenDeath',
+        'suddenDeathRound',
+        'phase',
+        'countdownLabel',
+        'targetColor',
+        'lastWinnerSlot',
+        'winnerSlot',
+        'playerCount',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'roomCode',
+        'hostUid',
+        'hostName',
+        'status',
+        'round',
+        'totalRounds',
+        'suddenDeath',
+        'suddenDeathRound',
+        'phase',
+        'countdownLabel',
+        'targetColor',
+        'lastWinnerSlot',
+        'winnerSlot',
+        'playerCount',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      isValidRoomId(data.roomCode) &&
+      isValidId(data.hostUid) &&
+      data.hostName is string && data.hostName.size() >= 1 && data.hostName.size() <= 40 &&
+      data.status is string && data.status.size() >= 7 && data.status.size() <= 8 && (data.status in ['waiting', 'playing', 'finished']) &&
+      data.round is number && data.round >= 1 && data.round <= 30 &&
+      data.totalRounds is number && data.totalRounds >= 1 && data.totalRounds <= 30 &&
+      data.suddenDeath is bool &&
+      data.suddenDeathRound is number && data.suddenDeathRound >= 0 && data.suddenDeathRound <= 30 &&
+      data.phase is string && data.phase.size() >= 7 && data.phase.size() <= 9 && (data.phase in ['countdown', 'calling', 'scoring']) &&
+      data.countdownLabel is string && data.countdownLabel.size() >= 1 && data.countdownLabel.size() <= 10 && (data.countdownLabel in ['READY…', '3', '2', '1', 'GO!']) &&
+      data.targetColor is string && data.targetColor.size() >= 3 && data.targetColor.size() <= 6 && (data.targetColor in ['none', 'red', 'blue', 'green', 'yellow']) &&
+      data.lastWinnerSlot is number && data.lastWinnerSlot >= 0 && data.lastWinnerSlot <= 4 &&
+      data.winnerSlot is number && data.winnerSlot >= 0 && data.winnerSlot <= 4 &&
+      data.playerCount is number && data.playerCount >= 1 && data.playerCount <= 4 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: RoomPlayer
+    function isValidRoomPlayer(data) {
+      return data.keys().hasAll([
+        'uid',
+        'roomId',
+        'slot',
+        'displayName',
+        'x',
+        'y',
+        'vx',
+        'vy',
+        'facingX',
+        'facingY',
+        'score',
+        'streak',
+        'bestStreak',
+        'falseStarted',
+        'falseStartCount',
+        'isContender',
+        'claimedRound',
+        'joinedAt',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid',
+        'roomId',
+        'slot',
+        'displayName',
+        'x',
+        'y',
+        'vx',
+        'vy',
+        'facingX',
+        'facingY',
+        'score',
+        'streak',
+        'bestStreak',
+        'falseStarted',
+        'falseStartCount',
+        'isContender',
+        'claimedRound',
+        'joinedAt',
+        'updatedAt'
+      ]) &&
+      isValidId(data.uid) &&
+      isValidRoomId(data.roomId) &&
+      data.slot is number && data.slot >= 1 && data.slot <= 4 &&
+      data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 40 &&
+      data.x is number && data.x >= 0 && data.x <= 960 &&
+      data.y is number && data.y >= 0 && data.y <= 640 &&
+      data.vx is number && data.vx >= -1200 && data.vx <= 1200 &&
+      data.vy is number && data.vy >= -1200 && data.vy <= 1200 &&
+      data.facingX is number && data.facingX >= -1 && data.facingX <= 1 &&
+      data.facingY is number && data.facingY >= -1 && data.facingY <= 1 &&
+      data.score is number && data.score >= 0 && data.score <= 200 &&
+      data.streak is number && data.streak >= 0 && data.streak <= 50 &&
+      data.bestStreak is number && data.bestStreak >= 0 && data.bestStreak <= 50 &&
+      data.falseStarted is bool &&
+      data.falseStartCount is number && data.falseStartCount >= 0 && data.falseStartCount <= 50 &&
+      data.isContender is bool &&
+      data.claimedRound is number && data.claimedRound >= 0 && data.claimedRound <= 50 &&
+      data.joinedAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    // Collection: /rooms/{roomId} — Room-code based access (no Gmail login required)
+    match /rooms/{roomId} {
+      allow get: if isValidRoomId(roomId) && (existing().status in ['waiting', 'playing', 'finished']);
+      allow list: if existing().roomCode == roomId;
+
+      allow create: if isValidRoomId(roomId) &&
+        isValidRoom(incoming()) &&
+        incoming().roomCode == roomId &&
+        incoming().status == 'waiting' &&
+        incoming().round == 1 &&
+        incoming().winnerSlot == 0 &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isValidRoomId(roomId) &&
+        isValidRoom(incoming()) &&
+        existing().status != 'finished' &&
+        incoming().roomCode == existing().roomCode &&
+        incoming().hostUid == existing().hostUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          // Action 1: Host updates match/round state
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'status',
+            'round',
+            'totalRounds',
+            'suddenDeath',
+            'suddenDeathRound',
+            'phase',
+            'countdownLabel',
+            'targetColor',
+            'lastWinnerSlot',
+            'winnerSlot',
+            'playerCount',
+            'updatedAt'
+          ]) ||
+          // Action 2: Joined player updates playerCount while room is waiting
+          (existing().status == 'waiting' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['playerCount', 'updatedAt']))
+        );
+
+      allow delete: if isValidRoomId(roomId);
+
+      // Subcollection: /rooms/{roomId}/players/{playerUid}
+      match /players/{playerUid} {
+        allow get: if isValidRoomId(roomId) && isValidId(playerUid) && existing().roomId == roomId;
+        allow list: if existing().roomId == roomId;
+
+        allow create: if isValidRoomId(roomId) &&
+          isValidId(playerUid) &&
+          isValidRoomPlayer(incoming()) &&
+          incoming().uid == playerUid &&
+          incoming().roomId == roomId &&
+          incoming().score == 0 &&
+          incoming().streak == 0 &&
+          incoming().bestStreak == 0 &&
+          incoming().joinedAt == request.time &&
+          incoming().updatedAt == request.time &&
+          (exists(/databases/$(database)/documents/rooms/$(roomId)) ||
+           existsAfter(/databases/$(database)/documents/rooms/$(roomId)));
+
+        allow update: if isValidRoomId(roomId) &&
+          isValidId(playerUid) &&
+          isValidRoomPlayer(incoming()) &&
+          incoming().uid == existing().uid &&
+          incoming().roomId == existing().roomId &&
+          incoming().slot == existing().slot &&
+          incoming().joinedAt == existing().joinedAt &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/rooms/$(roomId)) &&
+          get(/databases/$(database)/documents/rooms/$(roomId)).data.status != 'finished' && (
+            // Action 1: Player updates their own movement, displayName, false-start, or plate claim
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'displayName',
+              'x',
+              'y',
+              'vx',
+              'vy',
+              'facingX',
+              'facingY',
+              'falseStarted',
+              'falseStartCount',
+              'claimedRound',
+              'updatedAt'
+            ]) ||
+            // Action 2: Room Host updates player round positions, scores, streaks, and contender status
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'x',
+              'y',
+              'vx',
+              'vy',
+              'facingX',
+              'facingY',
+              'score',
+              'streak',
+              'bestStreak',
+              'falseStarted',
+              'falseStartCount',
+              'isContender',
+              'claimedRound',
+              'updatedAt'
+            ])
+          );
+
+        allow delete: if isValidRoomId(roomId) && isValidId(playerUid);
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Color Dash",
+  "description": "A cheerful, fast-paced 2–4 player local multiplayer browser party game where players dash to the called-out color zone before time runs out.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
